@@ -1,29 +1,24 @@
 # Compiled object files
 *.o
 *.obj
-
-# Compiled binary/executable
+*.so
 *.exe
 *.out
-*.app
-bank
-
-# Debug files
-*.log
-*.tmp
 
 # Backup files
 *~
-*.bak
-
-# IDE/editor files
-.vscode/
-.idea/
 *.swp
 *.swo
 
-# CMake files (if you use CMake later)
+# VS Code settings
+.vscode/
+
+# CMake files
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+build/
+
+# Log files
+*.log
