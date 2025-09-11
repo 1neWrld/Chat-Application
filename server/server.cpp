@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <thread>
 
 //Macro to set up the port number for the server to listen on
 #define PORT 8080
@@ -49,33 +50,60 @@ int main() {
 
     // Waits for a client to connect. Blocking call until someone connects, returns a socket.
     new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
-
-    std::cout << "Client connected!\n";
-
-    // Main loop to read messages from the client and send responses
+    
+    //std::cout << "Client connected!\n";
+    //std::cout << "Server Listening!\n";
+    
+    // Main loop 
     while (true) {
-        memset(buffer, 0, sizeof(buffer)); // clear the buffer
-        int valread = read(new_socket, buffer, 1024); // read client message
-        if (valread <= 0) break; // client disconnected or error
+        //wait for a client to connect
+        new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
 
-        std::string msg(buffer); // convert buffer to c++ string
-        std::cout << "Client: " << msg; 
+        //Spawn worker thread to handle client communication
+        std::thread clientThread(HandleClient, new_socket);
+        // Detach the thread to allow independent execution
+        clientThread.detach(); 
+        //continue to accept new clients
 
-        if (msg == "exit" || msg == "exit\n") {
-            std::cout << "Client disconnected.\n";
-            break;
-        }
-
-        std::string reply;
-        std::cout << "Server: "; // prompt for server reply
-        std::getline(std::cin, reply);
-
-        send(new_socket, reply.c_str(), reply.size(), 0); // send reply to client
-
-        if (reply == "exit") break;
     }
 
     close(new_socket); // close the client socket
     close(server_fd); // close the server socket
     return 0;
 }
+
+// Worker thread Function to handle client communication in a separate thread//
+    void HandleClient(int socket)
+    {
+        //space for client message and server reply
+        char buffer[1024] = {0};
+        while (true) {
+
+            //read messages from socket
+            memset(buffer, 0, sizeof(buffer));
+            int valread = read(socket, buffer, 1024);
+            if (valread <= 0) break;
+
+            /*
+                output client message
+                convert char array to string for easier handling
+            */
+            std::string msg(buffer);
+            std::cout << "Client: " << msg;
+
+            if (msg == "exit" || msg == "exit\n") {
+                std::cout << "Client disconnected.\n";
+                break;
+            }
+
+            //get server reply and send back to client
+            std::string reply;
+            std::cout << "Server: ";
+            std::getline(std::cin, reply);
+
+            send(socket, reply.c_str(), reply.size(), 0);
+
+            if (reply == "exit") break;
+        }
+        close(socket);
+    }
