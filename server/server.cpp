@@ -3,7 +3,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <thread>
+#include <vector>
 
 //Macro to set up the port number for the server to listen on
 #define PORT 8080
@@ -12,6 +14,15 @@
     A simple TCP server that listens on port 8080, accepts a connection, reads a message, and sends a response.
     Waits for a client to connect and interact.
 */
+
+void HandleClient(int socket);
+
+ struct ClientInfo
+{
+    int socket_fd; // socket returned by accept()
+    std::string ip; // ip address of the client
+    int port; // client port number
+};
 
 int main() {
     int server_fd, new_socket; // file descriptors for the server and the accepted socket (client)
@@ -46,18 +57,22 @@ int main() {
     bind(server_fd, (struct sockaddr *)&address, sizeof(address));
     listen(server_fd, 3);
 
-    std::cout << "Server listening on port " << PORT << "...\n";
+    std::cout << "Server listening on port " << PORT << "...\n";    
 
-    // Waits for a client to connect. Blocking call until someone connects, returns a socket.
-    new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
-    
-    //std::cout << "Client connected!\n";
-    //std::cout << "Server Listening!\n";
-    
+    std::vector<ClientInfo> clients; // Vector to hold all connected clients
+
     // Main loop 
     while (true) {
         //wait for a client to connect
         new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+
+        //After each accept extract client info, and store in vector(clients)
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &address.sin_addr, client_ip, INET_ADDRSTRLEN);
+        int client_port = ntohs(address.sin_port);
+
+        clients.push_back({new_socket, std::string(client_ip), client_port});
+        std::cout << "Client connected from " << "IP: " << client_ip << ", " <<" Port:" << client_port << "\n";
 
         //Spawn worker thread to handle client communication
         std::thread clientThread(HandleClient, new_socket);
